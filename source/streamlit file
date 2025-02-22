@@ -1,0 +1,51 @@
+import streamlit as st
+import pandas as pd
+import requests
+import time
+
+# ThingSpeak settings
+CHANNEL_ID = '2850551'
+READ_API_KEY = 'B3PZCWWK9I3Q3163'
+FETCH_INTERVAL = 60  # seconds
+
+# Function to fetch data from ThingSpeak
+def fetch_data():
+    url = f'https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data['feeds']:
+            feed = data['feeds'][0]
+            return {
+                'created_at': feed['created_at'],
+                'current': float(feed['field1']),
+                'power': float(feed['field2']),
+                'voltage': float(feed['field3']),
+                'energy': float(feed['field4'])
+            }
+    return None
+
+# Streamlit app
+st.title('Real-Time IoT Dashboard')
+st.subheader('Monitoring Current, Power, Voltage, and Energy')
+
+# Initialize placeholders
+current_placeholder = st.empty()
+power_placeholder = st.empty()
+voltage_placeholder = st.empty()
+energy_placeholder = st.empty()
+timestamp_placeholder = st.empty()
+
+# Fetch and display data periodically
+while True:
+    data = fetch_data()
+    if data:
+        timestamp_placeholder.text(f"Last updated: {data['created_at']}")
+        current_placeholder.metric("Voltage (V)", data['current'])
+        power_placeholder.metric("Current (A)", data['power'])
+        voltage_placeholder.metric("Power (W)", data['voltage'])
+        energy_placeholder.metric("Energy (Wh)", data['energy'])
+    else:
+        st.warning("Failed to retrieve data.")
+    
+    time.sleep(FETCH_INTERVAL)
