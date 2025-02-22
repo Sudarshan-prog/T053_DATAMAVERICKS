@@ -38,8 +38,28 @@ st.subheader('Monitoring Voltage, Current, Power, and Energy')
 # Fetch and display data
 data = fetch_data()
 if not data.empty:
+    # Define the local timezone
+    local_tz = pytz.timezone('Asia/Kolkata')
+
+    # Check if 'created_at' is timezone-aware
+    if data['created_at'].dt.tz is None:
+        # If naive, first localize to UTC, then convert to local timezone
+        data['created_at'] = data['created_at'].dt.tz_localize('UTC').dt.tz_convert(local_tz)
+    else:
+        # If already timezone-aware, directly convert to local timezone
+        data['created_at'] = data['created_at'].dt.tz_convert(local_tz)
+
+    # Get the latest data point
     latest_data = data.iloc[-1]
-    st.write(f"Last updated: {latest_data['created_at']}")
+
+    # Format the last updated time in local timezone
+    last_updated = latest_data['created_at']
+    offset_hours = int(last_updated.utcoffset().total_seconds() // 3600)
+    offset_minutes = int((last_updated.utcoffset().total_seconds() % 3600) // 60)
+    offset_str = f"{offset_hours:+03}:{offset_minutes:02}"
+    last_updated_str = last_updated.strftime(f'%Y-%m-%d %H:%M:%S IST (GMT{offset_str}HRS)')
+    st.write(f"Last updated: {last_updated_str}")
+
 
     # Display metrics
     col1, col2, col3, col4 = st.columns(4)
